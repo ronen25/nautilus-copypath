@@ -18,7 +18,7 @@ class PathUtilsExtension(GObject.GObject, Nautilus.MenuProvider):
         self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
     def __copy_path(self, menu, files):
-        pathstr = ''
+        pathstr = None
 
         # Get the paths for all the files.
         # Also, strip any protocol headers, if required.
@@ -27,11 +27,12 @@ class PathUtilsExtension(GObject.GObject, Nautilus.MenuProvider):
         # Append to the path string
         if len(files) > 1:
             pathstr = '\n'.join(locations)
-        else:
+        elif len(files) == 1:
             pathstr = locations[0]
 
         # Set clipboard text
-        self.clipboard.set_text(pathstr, -1)
+        if pathstr != None:
+            self.clipboard.set_text(pathstr, -1)
 
     def __copy_windows_path(self, menu, files):
         pathstr = files[0].get_uri()
