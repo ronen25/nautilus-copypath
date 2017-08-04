@@ -1,7 +1,7 @@
 # nautilus-copypath
 A small Nautilus extension for quickly copying file/Samba paths.
 
-[]
+![Screenshot](https://github.com/ronen25/nautilus-copypath/blob/master/nautilus_copypath_screenshot.png)
 
 ## General
 This plugin adds two new menu items in Nautilus' context menu: `Copy file path` and `Copy Windows path`.
