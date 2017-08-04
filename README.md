@@ -29,7 +29,7 @@ Copy the file to the appropriate folder, creating it if needed:
 ```
 mkdir ~/.local/share/nautilus-python
 mkdir ~/.local/share/nautilus-python/extensions
-cp nautilus-pathutils.py ~/.local/share/nautilus-python/extensions/
+cp nautilus-copypath.py ~/.local/share/nautilus-python/extensions/
 ```
 
 Restart Nautilus.
