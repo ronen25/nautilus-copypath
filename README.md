@@ -19,10 +19,11 @@ To successfully install the plugin you need:
 3. GObject Python bindings (development libraries)
 4. nautilus-python
 
-To install dependencies on Fedora simply use:
-```
-$ sudo dnf install nautilus-python python3-gobject
-```
+### Dependency Installation
+| Distro | Command|
+|--------|--------|
+| Fedora 25/26 | ``` $ sudo dnf install nautilus-python python3-gobject ``` |
+| Ubuntu GNOME | ``` $ sudo apt-get install python-nautilus python3-gi ``` |
 
 Clone the repository:
 ```
