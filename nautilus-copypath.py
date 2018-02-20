@@ -5,12 +5,19 @@
 # See LICENSE file for more information.
 #----------------------------------------------------------------------------------------
 
-import os
 import gi
-gi.require_version('Nautilus', '3.0')
-gi.require_version('Gtk', '3.0')
+try:
+    gi.require_version('Gtk', '3.0')
+    gi.require_version('Nautilus', '3.0')
+except Exception as e:
+    print(e)
+    exit(-1)
+import os
 
-from gi.repository import Nautilus, GObject, Gtk, Gdk
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import Nautilus
 
 class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
     def __init__(self):
