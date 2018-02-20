@@ -41,10 +41,8 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
             tip='Copy the file\'s full path to the clipboard'
         )
         item_copy_path.connect('activate', self.__copy_path, files)
-        items.append(item_copy_path)
 
-        return [ item_copy_path, ]
+        return item_copy_path,
 
     def get_background_items(self, window, files):
         return self.get_file_items(window, files)
-
