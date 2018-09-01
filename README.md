@@ -9,9 +9,6 @@ and `nautilus-copywinpath`, for converting a copied Samba path to a Windows path
 
 You may choose to either install both of the plugins, or only one of them, as you see fit.
 
-## Packages
-Coming soon!
-
 ## Installation from Source
 To successfully install the plugin you need:
 1. Python >= 3.2
