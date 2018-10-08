@@ -19,7 +19,7 @@ To successfully install the plugin you need:
 ### Dependency Installation
 | Distro | Command|
 |--------|--------|
-| Fedora 25/26 | ``` $ sudo dnf install nautilus-python python3-gobject ``` |
+| Fedora | ``` $ sudo dnf install nautilus-python python3-gobject ``` |
 | Ubuntu | ``` $ sudo apt-get install python-nautilus python3-gi ``` |
 
 Clone the repository:
