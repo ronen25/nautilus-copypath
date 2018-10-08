@@ -35,6 +35,8 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
             self.clipboard.set_text(pathstr, -1)
 
     def get_file_items(self, window, files):
+        items = []
+        
         item_copy_path = Nautilus.MenuItem(
             name='PathUtils::CopyPath',
             label='Copy file path',
