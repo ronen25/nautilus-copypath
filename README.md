@@ -12,7 +12,7 @@ You may choose to either install both of the plugins, or only one of them, as yo
 ## Installation from Source
 To successfully install the plugin you need:
 1. Python >= 3.2
-2. GNOME >= 3.18 (tested on Ubuntu GNOME 16.04, Fedora 25/26)
+2. GNOME >= 3.18 (tested on Ubuntu 18.04, Fedora 25-28)
 3. GObject Python bindings (development libraries)
 4. nautilus-python
 
