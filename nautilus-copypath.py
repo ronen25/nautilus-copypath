@@ -35,16 +35,13 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
             self.clipboard.set_text(pathstr, -1)
 
     def get_file_items(self, window, files):
-        items = []
-        
         item_copy_path = Nautilus.MenuItem(
             name='PathUtils::CopyPath',
             label='Copy file path',
             tip='Copy the file\'s full path to the clipboard'
         )
         item_copy_path.connect('activate', self.__copy_path, files)
-        items.append(item_copy_path)
-
+        
         return [ item_copy_path, ]
 
     def get_background_items(self, window, files):
