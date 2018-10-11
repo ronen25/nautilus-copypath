@@ -1,12 +1,12 @@
 #----------------------------------------------------------------------------------------
 # nautilus-copywinpath
 #
-# Redistributed under the Unlicense license.
+# Distributed under the Unlicense license.
 # See LICENSE file for more information.
 #----------------------------------------------------------------------------------------
 
-import os
 import gi
+
 gi.require_version('Nautilus', '3.0')
 gi.require_version('Gtk', '3.0')
 
@@ -17,26 +17,47 @@ class CopySambaToWindowsPathExtension(GObject.GObject, Nautilus.MenuProvider):
         # Initialize clipboard
         self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
-    def __copy_windows_path(self, menu, files):
-        pathstr = files[0].get_uri()
+    def __sanitize_path(self, path):
+        return path.replace('smb://', '\\\\').replace('/', '\\')
 
-        # Strip 'smb://' and convert slashes to backslashes
-        if 'smb://' in pathstr:
-            pathstr = pathstr.replace('smb://', '\\\\').replace('/', '\\')
+    def __copy_windows_path(self, menu, files):
+        pathstr = None
+
+        # Get the paths for all the files.
+        paths = [self.__sanitize_path(fileinfo.get_uri()) for fileinfo in files]
+
+        # Append to the path string
+        if len(files) > 1:
+            pathstr = '\n'.join(paths)
+        elif len(files) == 1:
+            pathstr = paths[0]
 
         # Set clipboard text
-        self.clipboard.set_text(pathstr, -1)
+        if pathstr is not None:
+            self.clipboard.set_text(pathstr, -1)
+
+    def __copy_windows_dir_path(self, menu, path):
+        if path is not None:
+            self.clipboard.set_text(self.sanitize_path(path.get_uri()), -1)
 
     def get_file_items(self, window, files):
         item_copy_windows_path = Nautilus.MenuItem(
             name='PathUtils::CopySambaPathAsWindows',
-            label='Copy Windows path',
-            tip='Converts the Samba path to a valid Windows path'
+            label='Copy Windows Path',
+            tip='Copy the Samba path as a Windows path to the clipboard'
         )
         item_copy_windows_path.connect('activate', self.__copy_windows_path, files)
 
-        return [ item_copy_windows_path, ]
+        return item_copy_windows_path,
 
-    def get_background_items(self, window, files):
-        return self.get_file_items(window, files)
+    def get_background_items(self, window, file):
+        item_copy_windows_dir_path = Nautilus.MenuItem(
+            name='PathUtils::CopySambaDirPathAsWindows',
+            label='Copy Directory Windows Path',
+            tip='Copy the Samba path of the current directory, as a Windows path, to the clipboard'
+        )
+
+        item_copy_windows_dir_path.connect('activate', self.__copy_windows_dir_path, file)
+
+        return item_copy_windows_dir_path,
 
