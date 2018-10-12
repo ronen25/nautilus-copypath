@@ -22,7 +22,8 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
         # Get the paths for all the files.
         # Also, strip any protocol headers, if required.
-        paths = [fileinfo.get_location().get_path() for fileinfo in files]
+        paths = [fileinfo.get_location().get_path().replace(' ', '\\ ')
+                for fileinfo in files]
         
         # Append to the path string
         if len(files) > 1:
