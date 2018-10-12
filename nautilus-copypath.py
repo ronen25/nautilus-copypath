@@ -17,15 +17,12 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
         # Initialize clipboard
         self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
-    def __sanitize_path(self, path):
-        return path.replace('file://', '')
-
     def __copy_files_path(self, menu, files):
         pathstr = None
 
         # Get the paths for all the files.
         # Also, strip any protocol headers, if required.
-        paths = [self.__sanitize_path(fileinfo.get_uri()) for fileinfo in files]
+        paths = [fileinfo.get_location().get_path() for fileinfo in files]
         
         # Append to the path string
         if len(files) > 1:
@@ -39,12 +36,19 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
     def __copy_dir_path(self, menu, path):
         if path is not None:
-            self.clipboard.set_text(self.__sanitize_path(path.get_uri()), -1)
+            self.clipboard.set_text(path.get_location().get_path(), -1)
 
     def get_file_items(self, window, files):
+        # If there are many items to copy, change the label
+        # to reflect that.
+        if len(files) > 1:
+            item_label = 'Copy Paths'
+        else:
+            item_label = 'Copy Path'
+
         item_copy_path = Nautilus.MenuItem(
             name='PathUtils::CopyPath',
-            label='Copy Path',
+            label=item_label,
             tip='Copy the full path to the clipboard'
         )
         item_copy_path.connect('activate', self.__copy_files_path, files)

@@ -24,7 +24,7 @@ class CopySambaToWindowsPathExtension(GObject.GObject, Nautilus.MenuProvider):
         pathstr = None
 
         # Get the paths for all the files.
-        paths = [self.__sanitize_path(fileinfo.get_uri()) for fileinfo in files]
+        paths = [fileinfo.get_location().get_path() for fileinfo in files]
 
         # Append to the path string
         if len(files) > 1:
@@ -38,12 +38,20 @@ class CopySambaToWindowsPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
     def __copy_windows_dir_path(self, menu, path):
         if path is not None:
-            self.clipboard.set_text(self.sanitize_path(path.get_uri()), -1)
+            pathstr = path.get_location().get_path()
+            self.clipboard.set_text(self.__sanitize_path(pathstr), -1)
 
     def get_file_items(self, window, files):
+        # If there are multiple items to copy, change the label
+        # to reflect that.
+        if len(files) > 1:
+            item_label = 'Copy Windows Paths'
+        else:
+            item_label = 'Copy Windows Path'
+
         item_copy_windows_path = Nautilus.MenuItem(
             name='PathUtils::CopySambaPathAsWindows',
-            label='Copy Windows Path',
+            label=item_label,
             tip='Copy the Samba path as a Windows path to the clipboard'
         )
         item_copy_windows_path.connect('activate', self.__copy_windows_path, files)
