@@ -1,8 +1,7 @@
 #----------------------------------------------------------------------------------------
-# nautilus-copywinpath
-#
-# Distributed under the Unlicense license.
-# See LICENSE file for more information.
+# nautilus-copywinpath - Quickly copy file paths to the clipboard from Nautilus.
+# Copyright (C) Ronen Lapushner 2017-2018.
+# Distributed under the GPL-v3+ license. See LICENSE for more information
 #----------------------------------------------------------------------------------------
 
 import gi
