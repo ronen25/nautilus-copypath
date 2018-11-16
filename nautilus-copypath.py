@@ -18,9 +18,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
     def __sanitize_path(self, path):
         # Replace spaces and parenthesis with their Linux-compatible equivalents. 
-        return path.replace(' ', '\\ ')
-                   .replace('(', '\(')
-                   .replace(')', '\)')
+        return path.replace(' ', '\\ ').replace('(', '\\(').replace(')', '\\)')
 
     def __copy_files_path(self, menu, files):
         pathstr = None
