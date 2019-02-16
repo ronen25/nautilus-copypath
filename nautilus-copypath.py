@@ -17,8 +17,8 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
         self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
     def __sanitize_path(self, path):
-        # Replace spaces and parenthesis with their Linux-compatible equivalents. 
-        return path.replace(' ', '\\ ').replace('(', '\\(').replace(')', '\\)')
+        # Add single quotes to path, avoid troublesome metacharacters
+        return "'" + path.replace("'", "'\\''") + "'"
 
     def __copy_files_path(self, menu, files):
         pathstr = None
