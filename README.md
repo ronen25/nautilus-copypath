@@ -41,4 +41,4 @@ cp nautilus-copypath.py ~/.local/share/nautilus-python/extensions/
 cp nautilus-copywinpath.py ~/.local/share/nautilus-python/extensions/
 ```
 
-Restart Nautilus and the extension will be available.
+Restart Nautilus and the extension will be available. If that doesn't work try logging out and back in. 
