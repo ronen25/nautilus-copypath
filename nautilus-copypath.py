@@ -4,12 +4,92 @@
 # Distributed under the GPL-v3+ license. See LICENSE for more information
 # ----------------------------------------------------------------------------------------
 
+import os
+
+from dataclasses import dataclass
+from platform import system
+from typing import Union
+
 import gi
 
 gi.require_version('Nautilus', '4.0')
 gi.require_version('Gdk', '4.0')
 
 from gi.repository import Nautilus, GObject, Gdk
+
+
+
+@dataclass  # gives nice default __repr__
+class CopyPathExtensionSettings:
+    """
+    Configuration object for the nautilus-copypath extension.
+    Can be automatically populated from ``NAUTILUS_COPYPATH_*`` environment variables.
+    """
+
+    @staticmethod
+    def __cast_env_var(name: str, default=None) -> Union[str, bool, None]:
+        """
+        Try to cast the value of ${name} to a python object.
+
+        :param name: The name of the environment variable. E.g., "``NAUTILUS_COPYPATH_WINPATH``".
+        :param default: Optionally, a default value if the environment variable is not set. Standard is ``None``.
+        :return: The value of the environment variable. Will be cast to bool for integers and certain strings.
+        """
+
+        value = os.environ.get(name, default=default)
+
+        # define a mapping for common boolean keywords
+        cast_map = {
+            'true': True,
+            'yes': True,
+            'y': True,
+            'false': False,
+            'no': False,
+            'n': False,
+        }
+
+        # if the env var is defined, i.e. different from the default
+        if value != default:
+            # we try two different casts to boolean
+            # first we cast to bool via int, if this fails,
+            # secondly we fall back to our cast map,
+            # otherwise just return the string
+            try:
+                value = bool(int(value))
+            except ValueError:
+                try:
+                    value = cast_map[value.lower()]
+                except KeyError:
+                    pass
+
+        return value
+
+    def __init__(self):
+        is_windows = system() == 'Windows'
+        self.winpath = self.__cast_env_var('NAUTILUS_COPYPATH_WINPATH', default=is_windows)
+        self.sanitize_paths = self.__cast_env_var('NAUTILUS_COPYPATH_SANITIZE_PATHS', default=True)
+        self.quote_paths = self.__cast_env_var('NAUTILUS_COPYPATH_QUOTE_PATHS', default=False)
+
+    winpath: bool
+    """
+    Whether to assume Windows-style paths. Default is determined by result of ``platform.system()``.
+        
+    Controlled by the ``NAUTILUS_COPYPATH_WINPATH`` environment variable.
+    """
+
+    sanitize_paths: bool = True
+    """
+    Whether to URL-encode paths. Defaults to true.
+    
+    Controlled by the ``NAUTILUS_COPYPATH_SANITIZE_PATHS`` environment variable.
+    """
+
+    quote_paths: bool = False
+    """
+    Whether to surround paths with quotes. Defaults to false.
+    
+    Controlled by the ``NAUTILUS_COPYPATH_QUOTE_PATHS`` environment variable.
+    """
 
 
 class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
