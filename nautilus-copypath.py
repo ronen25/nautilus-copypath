@@ -8,7 +8,7 @@ import os
 
 from dataclasses import dataclass
 from platform import system
-from typing import Union
+from typing import Union, List
 
 import gi
 
@@ -97,6 +97,18 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
         self.clipboard = Gdk.Display.get_default().get_clipboard()
         self.config = CopyPathExtensionSettings()
 
+    def __transform_paths(self, paths: List[str]) -> List[str]:
+        """Modify paths based on config values and transform them into a string."""
+        # Apply sanitization if requested
+        if self.config.sanitize_paths:
+            paths = [self.__sanitize_path(path) for path in paths]
+
+        # Apply quoting if requested
+        if self.config.quote_paths:
+            paths = [f'"{path}"' for path in paths]
+
+        return paths
+
     def __sanitize_path(self, path):
         # Replace spaces and parenthesis with their Linux-compatible equivalents. 
         return path.replace(' ', '\\ ').replace('(', '\\(').replace(')', '\\)')
@@ -106,11 +118,10 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
         # Get the paths for all the files.
         # Also, strip any protocol headers, if required.
-        paths = [fileinfo.get_location().get_path()
-                 for fileinfo in files]
-
-        if self.config.sanitize_paths:
-            paths = [self.__sanitize_path(path) for path in paths]
+        paths = self.__transform_paths([
+            fileinfo.get_location().get_path()
+            for fileinfo in files
+        ])
 
         # Append to the path string
         if len(files) > 1:
@@ -124,9 +135,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
     def __copy_dir_path(self, menu, path):
         if path is not None:
-            pathstr = path.get_location().get_path()
-            if self.config.sanitize_paths:
-                pathstr = self.__sanitize_path(pathstr)
+            pathstr = self.__transform_paths([path.get_location().get_path()])
             self.clipboard.set(pathstr)
 
     def get_file_items(self, files):
