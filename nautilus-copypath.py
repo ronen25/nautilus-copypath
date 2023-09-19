@@ -97,6 +97,11 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
         self.clipboard = Gdk.Display.get_default().get_clipboard()
         self.config = CopyPathExtensionSettings()
 
+        # Determine appropriate sanitization function
+        self.__sanitize_path = self.__sanitize_nix_path
+        if self.config.winpath:
+            self.__sanitize_path = self.__sanitize_win_path
+
     def __transform_paths(self, paths: List[str]) -> List[str]:
         """Modify paths based on config values and transform them into a string."""
         # Apply sanitization if requested
@@ -109,15 +114,24 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
         return paths
 
-    def __sanitize_path(self, path):
-        # Replace spaces and parenthesis with their Linux-compatible equivalents. 
+    @staticmethod
+    def __sanitize_nix_path(path):
+        # Replace spaces and parenthesis with their Linux-compatible equivalents.
         return path.replace(' ', '\\ ').replace('(', '\\(').replace(')', '\\)')
+
+    @staticmethod
+    def __sanitize_win_path(path):
+        return path.replace('smb://', '\\\\').replace('/', '\\')
 
     def __copy_files_path(self, menu, files):
         pathstr = None
 
         # Get the paths for all the files.
         # Also, strip any protocol headers, if required.
+        # TODO confirm with author:
+        #  windows function doesn't sanitize file names here.
+        #  is this correct? if so this behavior needs to change
+        #  also, this would probably a lot cleaner with pathlib
         paths = self.__transform_paths([
             fileinfo.get_location().get_path()
             for fileinfo in files
