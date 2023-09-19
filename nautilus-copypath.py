@@ -18,7 +18,6 @@ gi.require_version('Gdk', '4.0')
 from gi.repository import Nautilus, GObject, Gdk
 
 
-
 @dataclass  # gives nice default __repr__
 class CopyPathExtensionSettings:
     """
@@ -73,21 +72,21 @@ class CopyPathExtensionSettings:
     winpath: bool
     """
     Whether to assume Windows-style paths. Default is determined by result of ``platform.system()``.
-        
+
     Controlled by the ``NAUTILUS_COPYPATH_WINPATH`` environment variable.
     """
 
     sanitize_paths: bool = True
     """
-    Whether to URL-encode paths. Defaults to true.
-    
+    Whether to escape paths. Defaults to true.
+
     Controlled by the ``NAUTILUS_COPYPATH_SANITIZE_PATHS`` environment variable.
     """
 
     quote_paths: bool = False
     """
     Whether to surround paths with quotes. Defaults to false.
-    
+
     Controlled by the ``NAUTILUS_COPYPATH_QUOTE_PATHS`` environment variable.
     """
 
@@ -96,6 +95,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
     def __init__(self):
         # Initialize clipboard
         self.clipboard = Gdk.Display.get_default().get_clipboard()
+        self.config = CopyPathExtensionSettings()
 
     def __sanitize_path(self, path):
         # Replace spaces and parenthesis with their Linux-compatible equivalents. 
@@ -106,8 +106,11 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
         # Get the paths for all the files.
         # Also, strip any protocol headers, if required.
-        paths = [self.__sanitize_path(fileinfo.get_location().get_path())
+        paths = [fileinfo.get_location().get_path()
                  for fileinfo in files]
+
+        if self.config.sanitize_paths:
+            paths = [self.__sanitize_path(path) for path in paths]
 
         # Append to the path string
         if len(files) > 1:
@@ -121,7 +124,9 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
     def __copy_dir_path(self, menu, path):
         if path is not None:
-            pathstr = self.__sanitize_path(path.get_location().get_path())
+            pathstr = path.get_location().get_path()
+            if self.config.sanitize_paths:
+                pathstr = self.__sanitize_path(pathstr)
             self.clipboard.set(pathstr)
 
     def get_file_items(self, files):
