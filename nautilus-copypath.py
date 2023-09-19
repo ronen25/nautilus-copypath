@@ -69,6 +69,13 @@ class CopyPathExtensionSettings:
         self.sanitize_paths = self.__cast_env_var('NAUTILUS_COPYPATH_SANITIZE_PATHS', default=True)
         self.quote_paths = self.__cast_env_var('NAUTILUS_COPYPATH_QUOTE_PATHS', default=False)
 
+        # use system default for line breaks
+        line_break = '\r\n' if is_windows else '\n'
+        # we want to avoid casting to bool here, so we take the value from env directly
+        path_separator = os.environ.get('NAUTILUS_COPYPATH_PATH_SEPARATOR', line_break)
+        # enable using os.pathsep
+        self.path_separator = os.pathsep if path_separator == 'os.pathsep' else path_separator
+
     winpath: bool
     """
     Whether to assume Windows-style paths. Default is determined by result of ``platform.system()``.
@@ -88,6 +95,16 @@ class CopyPathExtensionSettings:
     Whether to surround paths with quotes. Defaults to false.
 
     Controlled by the ``NAUTILUS_COPYPATH_QUOTE_PATHS`` environment variable.
+    """
+
+    path_separator: str = ''
+    r"""
+    The symbol to use for separating multiple copied paths.
+    Defaults to LF (line feed) on *nix and CRLF on Windows.
+
+    Another possible value is ``os.pathsep`` to use the default path separator for the system.
+
+    Controlled by ``NAUTILUS_COPYPATH_PATH_SEPARATOR``.
     """
 
 
@@ -139,7 +156,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
         # Append to the path string
         if len(files) > 1:
-            pathstr = '\n'.join(paths)
+            pathstr = self.config.path_separator.join(paths)
         elif len(files) == 1:
             pathstr = paths[0]
 
