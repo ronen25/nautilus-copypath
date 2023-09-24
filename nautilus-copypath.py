@@ -5,6 +5,7 @@
 # Distributed under the GPL-v3+ license. See LICENSE for more information
 # ----------------------------------------------------------------------------------------
 
+from gi.repository import Nautilus, GObject, Gdk, Gtk
 import os
 from platform import system
 
@@ -17,8 +18,6 @@ gi.require_versions({
     'Gdk': '3.0' if gi_version_major == 3 else '4.0',
     'Gtk': '3.0' if gi_version_major == 3 else '4.0'
 })
-
-from gi.repository import Nautilus, GObject, Gdk, Gtk
 
 
 class CopyPathExtensionSettings:
@@ -189,7 +188,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
                 self.clipboard.set_text(pathstr, -1)
 
     def get_file_items(self, *args, **kwargs):
-        files = args[0] if gi_version_major == '4.0' else args[1]
+        files = args[0] if gi_version_major == 4 else args[1]
 
         # If there are many items to copy, change the label
         # to reflect that.
@@ -208,7 +207,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
         return item_copy_path,
 
     def get_background_items(self, *args, **kwargs):
-        file = args[0] if gi_version_major == '4.0' else args[1]
+        file = args[0] if gi_version_major == 4 else args[1]
 
         item_copy_dir_path = Nautilus.MenuItem(
             name='PathUtils::CopyCurrentDirPath',
