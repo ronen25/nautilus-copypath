@@ -6,13 +6,12 @@
 # ----------------------------------------------------------------------------------------
 
 import os
-
 from platform import system
 
 import gi
 
 # Import the correct GI version
-gi_version_major = gi.version_info[0]
+gi_version_major = 3 if 30 <= gi.version_info[1] < 40 else 4
 gi.require_versions({
     'Nautilus': '3.0' if gi_version_major == 3 else '4.0',
     'Gdk': '3.0' if gi_version_major == 3 else '4.0',
@@ -20,6 +19,7 @@ gi.require_versions({
 })
 
 from gi.repository import Nautilus, GObject, Gdk, Gtk
+
 
 class CopyPathExtensionSettings:
     """
