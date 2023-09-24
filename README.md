@@ -6,7 +6,7 @@ A small Nautilus extension for quickly copying file/Samba paths.
 ## Installation from Source
 To successfully install the plugin you need:
 1. Python >= 3.2
-2. GNOME >= 3.18 (tested on Debian 10, Ubuntu 16.04-18.04, Fedora 25-28, Arch Linux)
+2. GNOME >= 3.18 (tested on Debian 10-12, Ubuntu 16.04-22.04, Fedora 25-37, Arch Linux)
 3. GObject Python bindings (development libraries)
 4. nautilus-python
 
