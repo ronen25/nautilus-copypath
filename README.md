@@ -16,6 +16,7 @@ Simply copy and paste the appropriate command for your distro:
 | Distro | Command|
 |--------|--------|
 | Fedora | ``` $ sudo dnf install nautilus-python python3-gobject ``` |
+| Debian >= 12 | ``` $ sudo apt install python3-nautilus python3-gi ``` |
 | Ubuntu | ``` $ sudo apt-get install python-nautilus python3-gi ``` |
 | Arch Linux | ``` $ sudo pacman -S python-gobject python-nautilus ``` |
 

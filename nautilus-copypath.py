@@ -5,7 +5,6 @@
 # Distributed under the GPL-v3+ license. See LICENSE for more information
 # ----------------------------------------------------------------------------------------
 
-from gi.repository import Nautilus, GObject, Gdk, Gtk
 import os
 
 from platform import system
@@ -20,6 +19,7 @@ gi.require_versions({
     'Gtk': '3.0' if gi_version_major == 3 else '4.0'
 })
 
+from gi.repository import Nautilus, GObject, Gdk, Gtk
 
 class CopyPathExtensionSettings:
     """
