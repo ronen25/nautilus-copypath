@@ -1,49 +1,175 @@
-#----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 # nautilus-copypath - Quickly copy file paths to the clipboard from Nautilus.
 # Copyright (C) Ronen Lapushner 2017-2018.
 # Distributed under the GPL-v3+ license. See LICENSE for more information
-#----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
+
+import os
+
+from dataclasses import dataclass
+from platform import system
+from typing import Union, List
 
 import gi
 
-gi.require_version('Nautilus', '3.0')
-gi.require_version('Gtk', '3.0')
+gi.require_version('Nautilus', '4.0')
+gi.require_version('Gdk', '4.0')
 
-from gi.repository import Nautilus, GObject, Gtk, Gdk
+from gi.repository import Nautilus, GObject, Gdk
+
+
+@dataclass  # gives nice default __repr__
+class CopyPathExtensionSettings:
+    """
+    Configuration object for the nautilus-copypath extension.
+    Can be automatically populated from ``NAUTILUS_COPYPATH_*`` environment variables.
+    """
+
+    @staticmethod
+    def __cast_env_var(name: str, default=None) -> Union[str, bool, None]:
+        """
+        Try to cast the value of ${name} to a python object.
+
+        :param name: The name of the environment variable. E.g., "``NAUTILUS_COPYPATH_WINPATH``".
+        :param default: Optionally, a default value if the environment variable is not set. Standard is ``None``.
+        :return: The value of the environment variable. Will be cast to bool for integers and certain strings.
+        """
+
+        value = os.environ.get(name, default=default)
+
+        # define a mapping for common boolean keywords
+        cast_map = {
+            'true': True,
+            'yes': True,
+            'y': True,
+            'false': False,
+            'no': False,
+            'n': False,
+        }
+
+        # if the env var is defined, i.e. different from the default
+        if value != default:
+            # we try two different casts to boolean
+            # first we cast to bool via int, if this fails,
+            # secondly we fall back to our cast map,
+            # otherwise just return the string
+            try:
+                value = bool(int(value))
+            except ValueError:
+                try:
+                    value = cast_map[value.lower()]
+                except KeyError:
+                    pass
+
+        return value
+
+    def __init__(self):
+        is_windows = system() == 'Windows'
+        self.winpath = self.__cast_env_var('NAUTILUS_COPYPATH_WINPATH', default=is_windows)
+        self.sanitize_paths = self.__cast_env_var('NAUTILUS_COPYPATH_SANITIZE_PATHS', default=True)
+        self.quote_paths = self.__cast_env_var('NAUTILUS_COPYPATH_QUOTE_PATHS', default=False)
+
+        # use system default for line breaks
+        line_break = '\r\n' if is_windows else '\n'
+        # we want to avoid casting to bool here, so we take the value from env directly
+        path_separator = os.environ.get('NAUTILUS_COPYPATH_PATH_SEPARATOR', line_break)
+        # enable using os.pathsep
+        self.path_separator = os.pathsep if path_separator == 'os.pathsep' else path_separator
+
+    winpath: bool
+    """
+    Whether to assume Windows-style paths. Default is determined by result of ``platform.system()``.
+
+    Controlled by the ``NAUTILUS_COPYPATH_WINPATH`` environment variable.
+    """
+
+    sanitize_paths: bool = True
+    """
+    Whether to escape paths. Defaults to true.
+
+    Controlled by the ``NAUTILUS_COPYPATH_SANITIZE_PATHS`` environment variable.
+    """
+
+    quote_paths: bool = False
+    """
+    Whether to surround paths with quotes. Defaults to false.
+
+    Controlled by the ``NAUTILUS_COPYPATH_QUOTE_PATHS`` environment variable.
+    """
+
+    path_separator: str = ''
+    r"""
+    The symbol to use for separating multiple copied paths.
+    Defaults to LF (line feed) on *nix and CRLF on Windows.
+
+    Another possible value is ``os.pathsep`` to use the default path separator for the system.
+
+    Controlled by ``NAUTILUS_COPYPATH_PATH_SEPARATOR``.
+    """
+
 
 class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
     def __init__(self):
         # Initialize clipboard
-        self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        self.clipboard = Gdk.Display.get_default().get_clipboard()
+        self.config = CopyPathExtensionSettings()
 
-    def __sanitize_path(self, path):
-        # Replace spaces and parenthesis with their Linux-compatible equivalents. 
+        # Determine appropriate sanitization function
+        self.__sanitize_path = self.__sanitize_nix_path
+        if self.config.winpath:
+            self.__sanitize_path = self.__sanitize_win_path
+
+    def __transform_paths(self, paths: List[str]) -> List[str]:
+        """Modify paths based on config values and transform them into a string."""
+        # Apply sanitization if requested
+        if self.config.sanitize_paths:
+            paths = [self.__sanitize_path(path) for path in paths]
+
+        # Apply quoting if requested
+        if self.config.quote_paths:
+            paths = [f'"{path}"' for path in paths]
+
+        return paths
+
+    @staticmethod
+    def __sanitize_nix_path(path):
+        # Replace spaces and parenthesis with their Linux-compatible equivalents.
         return path.replace(' ', '\\ ').replace('(', '\\(').replace(')', '\\)')
+
+    @staticmethod
+    def __sanitize_win_path(path):
+        return path.replace('smb://', '\\\\').replace('/', '\\')
 
     def __copy_files_path(self, menu, files):
         pathstr = None
 
         # Get the paths for all the files.
         # Also, strip any protocol headers, if required.
-        paths = [self.__sanitize_path(fileinfo.get_location().get_path())
-                for fileinfo in files]
-        
+        # TODO confirm with author:
+        #  windows function doesn't sanitize file names here.
+        #  is this correct? if so this behavior needs to change
+        #  also, this would probably a lot cleaner with pathlib
+        paths = self.__transform_paths([
+            fileinfo.get_location().get_path()
+            for fileinfo in files
+        ])
+
         # Append to the path string
         if len(files) > 1:
-            pathstr = '\n'.join(paths)
+            pathstr = self.config.path_separator.join(paths)
         elif len(files) == 1:
             pathstr = paths[0]
 
         # Set clipboard text
         if pathstr is not None:
-            self.clipboard.set_text(pathstr, -1)
+            self.clipboard.set(pathstr)
 
     def __copy_dir_path(self, menu, path):
         if path is not None:
-            pathstr = self.__sanitize_path(path.get_location().get_path())
-            self.clipboard.set_text(pathstr, -1)
+            pathstr = self.__transform_paths([path.get_location().get_path()])
+            self.clipboard.set(pathstr)
 
-    def get_file_items(self, window, files):
+    def get_file_items(self, files):
         # If there are many items to copy, change the label
         # to reflect that.
         if len(files) > 1:
@@ -57,10 +183,10 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
             tip='Copy the full path to the clipboard'
         )
         item_copy_path.connect('activate', self.__copy_files_path, files)
-        
+
         return item_copy_path,
 
-    def get_background_items(self, window, file):
+    def get_background_items(self, file):
         item_copy_dir_path = Nautilus.MenuItem(
             name='PathUtils::CopyCurrentDirPath',
             label='Copy Directory Path',
@@ -70,4 +196,3 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
         item_copy_dir_path.connect('activate', self.__copy_dir_path, file)
 
         return item_copy_dir_path,
-
