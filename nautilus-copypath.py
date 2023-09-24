@@ -1,24 +1,26 @@
 # ----------------------------------------------------------------------------------------
 # nautilus-copypath - Quickly copy file paths to the clipboard from Nautilus.
-# Copyright (C) Ronen Lapushner 2017-2018.
+# Copyright (C) Ronen Lapushner 2017-2023.
+# Copyright (C) Fynn Freyer 2023.
 # Distributed under the GPL-v3+ license. See LICENSE for more information
 # ----------------------------------------------------------------------------------------
 
+from gi.repository import Nautilus, GObject, Gdk, Gtk
 import os
 
-from dataclasses import dataclass
 from platform import system
-from typing import Union, List
 
 import gi
 
-gi.require_version('Nautilus', '4.0')
-gi.require_version('Gdk', '4.0')
+# Import the correct GI version
+gi_version_major = gi.version_info[0]
+gi.require_versions({
+    'Nautilus': '3.0' if gi_version_major == 3 else '4.0',
+    'Gdk': '3.0' if gi_version_major == 3 else '4.0',
+    'Gtk': '3.0' if gi_version_major == 3 else '4.0'
+})
 
-from gi.repository import Nautilus, GObject, Gdk
 
-
-@dataclass  # gives nice default __repr__
 class CopyPathExtensionSettings:
     """
     Configuration object for the nautilus-copypath extension.
@@ -26,7 +28,7 @@ class CopyPathExtensionSettings:
     """
 
     @staticmethod
-    def __cast_env_var(name: str, default=None) -> Union[str, bool, None]:
+    def __cast_env_var(name, default=None):
         """
         Try to cast the value of ${name} to a python object.
 
@@ -35,7 +37,7 @@ class CopyPathExtensionSettings:
         :return: The value of the environment variable. Will be cast to bool for integers and certain strings.
         """
 
-        value = os.environ.get(name, default=default)
+        value = os.environ.get(name, default)
 
         # define a mapping for common boolean keywords
         cast_map = {
@@ -65,39 +67,44 @@ class CopyPathExtensionSettings:
 
     def __init__(self):
         is_windows = system() == 'Windows'
-        self.winpath = self.__cast_env_var('NAUTILUS_COPYPATH_WINPATH', default=is_windows)
-        self.sanitize_paths = self.__cast_env_var('NAUTILUS_COPYPATH_SANITIZE_PATHS', default=True)
-        self.quote_paths = self.__cast_env_var('NAUTILUS_COPYPATH_QUOTE_PATHS', default=False)
+        self.winpath = self.__cast_env_var(
+
+            'NAUTILUS_COPYPATH_WINPATH', default=is_windows)
+        self.sanitize_paths = self.__cast_env_var(
+            'NAUTILUS_COPYPATH_SANITIZE_PATHS', default=True)
+        self.quote_paths = self.__cast_env_var(
+            'NAUTILUS_COPYPATH_QUOTE_PATHS', default=False)
 
         # use system default for line breaks
         line_break = '\r\n' if is_windows else '\n'
         # we want to avoid casting to bool here, so we take the value from env directly
-        path_separator = os.environ.get('NAUTILUS_COPYPATH_PATH_SEPARATOR', line_break)
+        path_separator = os.environ.get(
+            'NAUTILUS_COPYPATH_PATH_SEPARATOR', line_break)
         # enable using os.pathsep
         self.path_separator = os.pathsep if path_separator == 'os.pathsep' else path_separator
 
-    winpath: bool
+    winpath = False
     """
     Whether to assume Windows-style paths. Default is determined by result of ``platform.system()``.
 
     Controlled by the ``NAUTILUS_COPYPATH_WINPATH`` environment variable.
     """
 
-    sanitize_paths: bool = True
+    sanitize_paths = True
     """
     Whether to escape paths. Defaults to true.
 
     Controlled by the ``NAUTILUS_COPYPATH_SANITIZE_PATHS`` environment variable.
     """
 
-    quote_paths: bool = False
+    quote_paths = False
     """
     Whether to surround paths with quotes. Defaults to false.
 
     Controlled by the ``NAUTILUS_COPYPATH_QUOTE_PATHS`` environment variable.
     """
 
-    path_separator: str = ''
+    path_separator = ''
     r"""
     The symbol to use for separating multiple copied paths.
     Defaults to LF (line feed) on *nix and CRLF on Windows.
@@ -111,7 +118,11 @@ class CopyPathExtensionSettings:
 class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
     def __init__(self):
         # Initialize clipboard
-        self.clipboard = Gdk.Display.get_default().get_clipboard()
+        if gi_version_major == 4:
+            self.clipboard = Gdk.Display.get_default().get_clipboard()
+        else:
+            self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+
         self.config = CopyPathExtensionSettings()
 
         # Determine appropriate sanitization function
@@ -119,7 +130,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
         if self.config.winpath:
             self.__sanitize_path = self.__sanitize_win_path
 
-    def __transform_paths(self, paths: List[str]) -> List[str]:
+    def __transform_paths(self, paths):
         """Modify paths based on config values and transform them into a string."""
         # Apply sanitization if requested
         if self.config.sanitize_paths:
@@ -127,7 +138,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
         # Apply quoting if requested
         if self.config.quote_paths:
-            paths = [f'"{path}"' for path in paths]
+            paths = ['"{}"'.format(path) for path in paths]
 
         return paths
 
@@ -162,14 +173,24 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
         # Set clipboard text
         if pathstr is not None:
-            self.clipboard.set(pathstr)
+
+            if gi_version_major == 4:
+                self.clipboard.set(pathstr)
+            else:
+                self.clipboard.set_text(pathstr, -1)
 
     def __copy_dir_path(self, menu, path):
         if path is not None:
             pathstr = self.__transform_paths([path.get_location().get_path()])
-            self.clipboard.set(pathstr)
 
-    def get_file_items(self, files):
+            if gi_version_major == 4:
+                self.clipboard.set(pathstr)
+            else:
+                self.clipboard.set_text(pathstr, -1)
+
+    def get_file_items(self, *args, **kwargs):
+        files = args[0] if gi_version_major == '4.0' else args[1]
+
         # If there are many items to copy, change the label
         # to reflect that.
         if len(files) > 1:
@@ -186,7 +207,9 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
         return item_copy_path,
 
-    def get_background_items(self, file):
+    def get_background_items(self, *args, **kwargs):
+        file = args[0] if gi_version_major == '4.0' else args[1]
+
         item_copy_dir_path = Nautilus.MenuItem(
             name='PathUtils::CopyCurrentDirPath',
             label='Copy Directory Path',
