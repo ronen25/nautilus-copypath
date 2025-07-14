@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------------------------
 # nautilus-copypath - Quickly copy file paths to the clipboard from Nautilus.
-# Copyright (C) Ronen Lapushner 2017-2023.
+# Copyright (C) Ronen Lapushner 2017-2025.
 # Copyright (C) Fynn Freyer 2023.
 # Distributed under the GPL-v3+ license. See LICENSE for more information
 # ----------------------------------------------------------------------------------------
@@ -67,7 +67,6 @@ class CopyPathExtensionSettings:
     def __init__(self):
         is_windows = system() == 'Windows'
         self.winpath = self.__cast_env_var(
-
             'NAUTILUS_COPYPATH_WINPATH', default=is_windows)
         self.sanitize_paths = self.__cast_env_var(
             'NAUTILUS_COPYPATH_SANITIZE_PATHS', default=True)
@@ -131,11 +130,9 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
 
     def __transform_paths(self, paths):
         """Modify paths based on config values and transform them into a string."""
-        # Apply sanitization if requested
         if self.config.sanitize_paths:
             paths = [self.__sanitize_path(path) for path in paths]
 
-        # Apply quoting if requested
         if self.config.quote_paths:
             paths = ['"{}"'.format(path) for path in paths]
 
@@ -190,8 +187,7 @@ class CopyPathExtension(GObject.GObject, Nautilus.MenuProvider):
     def get_file_items(self, *args, **kwargs):
         files = args[0] if gi_version_major == 4 else args[1]
 
-        # If there are many items to copy, change the label
-        # to reflect that.
+        # Pluralize label if needed
         if len(files) > 1:
             item_label = 'Copy Paths'
         else:
